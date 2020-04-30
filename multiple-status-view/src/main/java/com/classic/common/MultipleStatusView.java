@@ -76,6 +76,7 @@ public class MultipleStatusView extends RelativeLayout {
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
+        // 当XML加载完成,展示内容页.
         showContent();
     }
 
@@ -116,6 +117,7 @@ public class MultipleStatusView extends RelativeLayout {
      * 显示空视图
      */
     public final void showEmpty() {
+        // mEmptyViewResId 为空视图的id,在XML中设置,空视图可以自定义.
         showEmpty(mEmptyViewResId, DEFAULT_LAYOUT_PARAMS);
     }
 
@@ -126,7 +128,9 @@ public class MultipleStatusView extends RelativeLayout {
      * @param formatArgs 占位符参数
      */
     public final void showEmpty(int hintResId, Object... formatArgs) {
+        // 往下看
         showEmpty();
+        // 设置状态页中提示内容
         setStatusHintContent(mEmptyView, hintResId, formatArgs);
     }
 
@@ -147,6 +151,8 @@ public class MultipleStatusView extends RelativeLayout {
      * @param layoutParams 布局参数
      */
     public final void showEmpty(int layoutId, ViewGroup.LayoutParams layoutParams) {
+        // 首先判断mEmptyView是否为null,当第一次进入的时候空视图还一次未显示,它确实会是null.
+        // mEmptyView==null,就使用inflate()获取该空视图.注意,此时的mEmptyView变量并未被赋值,还是未null.
         showEmpty(null == mEmptyView ? inflateView(layoutId) : mEmptyView, layoutParams);
     }
 
@@ -157,18 +163,27 @@ public class MultipleStatusView extends RelativeLayout {
      * @param layoutParams 布局参数
      */
     public final void showEmpty(View view, ViewGroup.LayoutParams layoutParams) {
-        checkNull(view, "Empty view is null.");
+        // view参数为上一步通过inflate()获取的空视图View.
+        checkNull(view, "Empty view is null.");// view对象存在这些判空不会抛异常
         checkNull(layoutParams, "Layout params is null.");
+        // 记录界面状态更改后的状态以及回调状态改变监听
         changeViewStatus(STATUS_EMPTY);
+        // 如果是第一次显示空视图,mEmptyView此时是为null.
         if (null == mEmptyView) {
+            // 将上一步通过inflate()获取的空视图View赋值给mEmptyView.
             mEmptyView = view;
+            // 获取空视图中的重试点击View
             View emptyRetryView = mEmptyView.findViewById(R.id.empty_retry_view);
             if (null != mOnRetryClickListener && null != emptyRetryView) {
+                // 这里回调点击事件,在回调中可以重新加载数据之类的.
                 emptyRetryView.setOnClickListener(mOnRetryClickListener);
             }
+            // 这里是将空视图View的id存入mOtherIds集合中.
             mOtherIds.add(mEmptyView.getId());
+            // 将空视图View添加进MultipleStatusView中,对应的View索引为0.
             addView(mEmptyView, 0, layoutParams);
         }
+        // 隐藏MultipleStatusView中非空视图的子View.
         showViewById(mEmptyView.getId());
     }
 
@@ -352,11 +367,15 @@ public class MultipleStatusView extends RelativeLayout {
      * 显示内容视图
      */
     public final void showContent() {
+        // 记录界面状态更改后的状态以及回调状态改变监听
         changeViewStatus(STATUS_CONTENT);
         if (null == mContentView && mContentViewResId != NULL_RESOURCE_ID) {
+            // 如果内容页为null,且内容页id不为null,那么就inflate出内容页View.
             mContentView = mInflater.inflate(mContentViewResId, null);
+            // 将内容页添加进MultipleStatusView中,对应的View索引为0.
             addView(mContentView, 0, DEFAULT_LAYOUT_PARAMS);
         }
+        // 该方法用来将非内容页的视图都GONE掉
         showContentView();
     }
 
@@ -386,17 +405,22 @@ public class MultipleStatusView extends RelativeLayout {
         showViewById(mContentView.getId());
     }
 
+
     private void setStatusHintContent(View view, int resId, Object... formatArgs) {
         checkNull(view, "Target view is null.");
         setStatusHintContent(view, view.getContext().getString(resId, formatArgs));
     }
 
+
     private void setStatusHintContent(View view, String hint) {
         checkNull(view, "Target view is null.");
+        // 各个状态页中,id为status_hint_content的TextView就是用来显示状态提示用的.
         TextView hintView = view.findViewById(R.id.status_hint_content);
         if (null != hintView) {
+            // 如果hintView不为null,就将需要告诉用户的状态信息展示出来
             hintView.setText(hint);
         } else {
+            // 否则抛出异常,这里就要求了如果是自定义的状态页中的提示TextView,该TextView的id必须为status_hint_content,否则抛出异常.
             throw new NullPointerException("Not find the view ID `status_hint_content`");
         }
     }
@@ -409,14 +433,20 @@ public class MultipleStatusView extends RelativeLayout {
         final int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
             View view = getChildAt(i);
+            // 遍历MultipleStatusView中所有子控件,viewId是空视图id,如果id不为空视图id,这些id对应的View都将被GONE掉.
             view.setVisibility(view.getId() == viewId ? View.VISIBLE : View.GONE);
         }
     }
 
+    /**
+     * 该方法用来将非内容页的视图都GONE掉
+     */
     private void showContentView() {
         final int childCount = getChildCount();
         for (int i = 0; i < childCount; i++) {
             View view = getChildAt(i);
+            // mOtherIds 是一个list集合,专门用来存储View的id.
+            // 因为内容页View的id没有存入mOtherIds集合中,所以当要显示内容页时,只要将mOtherIds集合中id对应的View都GONE掉就可以了.
             view.setVisibility(mOtherIds.contains(view.getId()) ? View.GONE : View.VISIBLE);
         }
     }
@@ -466,7 +496,8 @@ public class MultipleStatusView extends RelativeLayout {
     }
 
     /**
-     * 改变视图状态
+     * 1. 每当状态页更改时候调用,将当前状态与即将更改的状态回调出去.
+     * 2. 即将更改的状态赋值给mViewStatus,替换掉当前状态.
      *
      * @param newViewStatus 新的视图状态
      */
