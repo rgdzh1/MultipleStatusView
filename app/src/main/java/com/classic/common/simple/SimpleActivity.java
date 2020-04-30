@@ -7,7 +7,6 @@ public class SimpleActivity extends AbsActivity {
         setTitle("SimpleActivity");
         mMultipleStatusView = findViewById(R.id.simple_multiple_status_view);
         mMultipleStatusView.setOnRetryClickListener(mRetryClickListener);
-
         loading();
     }
 }
